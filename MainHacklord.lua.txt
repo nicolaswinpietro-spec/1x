@@ -1,3 +1,56 @@
+-- Criar ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Tela preta
+local black = Instance.new("Frame")
+black.BackgroundColor3 = Color3.new(0, 0, 0)
+black.Size = UDim2.new(1, 0, 1, 0)
+black.Parent = gui
+
+-- Som (NÃO PARA NO FADE OUT)
+local sound = Instance.new("Sound")
+sound.SoundId = "rbxassetid://108760159697947"
+sound.Volume = 1
+sound.Parent = gui
+sound:Play()
+
+task.wait(1)
+
+-- Imagem com fade in
+local img = Instance.new("ImageLabel")
+img.BackgroundTransparency = 1
+img.Image = "rbxassetid://78228096091948"
+img.Size = UDim2.new(0, 500, 0, 500)
+img.Position = UDim2.new(0.5, -250, 0.5, -250)
+img.ImageTransparency = 1
+img.Parent = gui
+
+-- Fade in rápido
+for i = 1, 0, -0.1 do
+    img.ImageTransparency = i
+    task.wait(0.03)
+end
+
+task.wait(0.2)
+
+-- Fade out da IMAGEM + TELA PRETA (som continua)
+for i = 0, 1, 0.1 do
+    img.ImageTransparency = i
+    black.BackgroundTransparency = i
+    task.wait(0.03)
+end
+
+-- Remove interface, mas deixa o som tocando
+img:Destroy()
+black:Destroy()
+
+-- opcional: destruir só depois que o som acabar
+-- sound.Ended:Wait()
+-- gui:Destroy()
+
 local Settings = {
 	VisibleHitbox = true;
 	Hitmarker = false
@@ -1408,4 +1461,5 @@ table.insert(CleanUp, PreRender:Connect(function()
 	end
 
 end))
+
 
