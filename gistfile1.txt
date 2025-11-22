@@ -182,7 +182,7 @@ task.wait(0.4)
 tween(address, {time={0.8}, props={TextTransparency = 0}}):Play()
 
 -- tocar música quando o título aparecer
-local url = "https://raw.githubusercontent.com/nicolasbarbosa43243/john-doe/main/Through%20Patches%20of%20Violet%20(Hacklord%201x1x1x1%20LMS)%20-%20FORSAKEN%20OST.mp3"
+local url = "https://raw.githubusercontent.com/nicolaswinpietro-spec/1x/main/01.%20Through%20Patches%20of%20Violet.mp3"
 local filename = "Through Patches of Violet.mp3"
 writefile(filename, game:HttpGet(url))
 
