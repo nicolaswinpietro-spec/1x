@@ -211,6 +211,108 @@ tween(backdrop, {time={outroFade}, props={BackgroundTransparency = 1}}):Play()
 task.wait(outroFade + 0.1)
 gui:Destroy()
 
+-- GUI DE LEGENDA COM EFEITO TORTO + GLITCH
+local p = game.Players.LocalPlayer
+local gui = Instance.new("ScreenGui", p:WaitForChild("PlayerGui"))
+gui.ResetOnSpawn = false
+
+local txt = Instance.new("TextLabel", gui)
+txt.Size = UDim2.new(0, 800, 0, 80)
+txt.Position = UDim2.new(0.5, -400, 0.75, 0)
+txt.BackgroundTransparency = 1
+txt.TextColor3 = Color3.new(0,0,0) -- preto
+txt.TextStrokeTransparency = 0
+txt.TextStrokeColor3 = Color3.fromRGB(255,0,255) -- borda roxa glitch
+txt.Font = Enum.Font.FredokaOne
+txt.TextScaled = true
+txt.Rotation = -8 -- torto
+
+-- EFEITO GLITCH
+spawn(function()
+    while true do
+        txt.TextStrokeColor3 = Color3.fromRGB(math.random(0,255), math.random(0,255), math.random(0,255))
+        txt.Rotation = -8 + math.random(-2,2)
+        task.wait(0.1)
+    end
+end)
+
+--------------------------------------------------------------------
+
+-- LISTA DE FRASES COM O TEMPO EXATO EM SEGUNDOS
+local subtitles = {
+    {0.00, "How much I wished for another"},
+    {6.00, "Better, happier, brighter future"},
+    {11.00, "Here I am at the gate I stand"},
+    {16.00, "Dear old times"},
+    {19.00, "I've made up my mind"},
+    {22.00, "How much you must have suffered through my anger"},
+    {27.00, "(How much you must have overlooked your wonder)"},
+    {30.00, "Vulgar (forward)"},
+    {32.00, "Awkward (sincere)"},
+    {34.00, "Composure (manners)"},
+    {36.00, "Here we are at the fated land"},
+    {39.00, "I shall make it end (Will you watch me end?)"},
+    {42.00, "Oh"},
+
+    {44.00, "Round and round we go"},
+    {48.00, "Holding on to pain"},
+    {51.00, "Driven by our egos"},
+    {54.00, "Feelings (feelings) untold"},
+    {57.00, "Spinning our own versions of the past"},
+    {61.00, "That you could never know"},
+
+    {63.00, "'Cause I know"},
+    {65.00, "I must be the reason why"},
+    {68.00, "You have given up your smiles"},
+    {71.00, "And the hope inside your eyes have been stolen"},
+    {75.00, "I must be the reason why"},
+    {78.00, "You must tell me all these lies"},
+    {82.00, "Wishing you a better life without me by your side"},
+
+    {88.00, "The message has already been said through patches of violet"},
+
+    {91.00, "Delete, delete, delete, delete"},
+    {94.00, "Delete, delete, delete, delete"},
+    {97.00, "Oh"},
+
+    {100.00, "Round and round we go"},
+    {103.00, "Holding on to pain"},
+    {106.00, "Driven by our egos"},
+    {109.00, "Feelings (feelings) untold"},
+    {112.00, "Spinning our own versions of the past"},
+    {116.00, "That you could never know"},
+    {118.00, "How would I know?"},
+    {120.00, "I could be the reason why"},
+    {123.00, "You were able to be kind"},
+    {126.00, "And the hearts we held so tight won't stay broken"},
+    {130.00, "Love must be the reason why"},
+    {133.00, "I still believe in this lie"},
+    {137.00, "That you'll live a better life without me by your side"},
+    {142.00, "The message has already been said through patches of violet"},
+}
+
+--------------------------------------------------------------------
+
+-- SISTEMA DE SINCRONIZAÇÃO
+local start = tick()
+
+for i, data in ipairs(subtitles) do
+    local timeToShow = data[1]
+    local text = data[2]
+
+    local now = tick() - start
+    local waitTime = timeToShow - now
+
+    if waitTime > 0 then
+        task.wait(waitTime)
+    end
+
+    txt.Text = text
+end
+
+txt.Text = ""
+
+
 -- Script de voo ao pressionar a tecla F
 local Player = game.Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
