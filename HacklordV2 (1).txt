@@ -1,0 +1,680 @@
+
+-- Made by ban_thid | Hacklord
+
+writefile("LMS.mp3", game:HttpGet("https://github.com/nicolaswinpietro-spec/1x/raw/refs/heads/main/LMS.mp3"))
+writefile("Layer1.mp3", game:HttpGet("https://github.com/nicolaswinpietro-spec/1x/raw/refs/heads/main/Layer1.mp3"))
+writefile("Layer2.mp3", game:HttpGet("https://github.com/nicolaswinpietro-spec/1x/raw/refs/heads/main/Layer2.mp3")
+writefile("Layer3.mp3", game:HttpGet("https://github.com/nicolaswinpietro-spec/1x/raw/refs/heads/main/Layer3.mp3"))
+writefile("Theme.mp3", game:HttpGet("https://github.com/nicolaswinpietro-spec/1x/raw/refs/heads/main/Theme.mp3"))
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+
+local LocalPlayer = Players.LocalPlayer
+local hasAppliedHackLord = false
+
+local tStyle = {
+	[Enum.PoseEasingStyle.Linear] = Enum.EasingStyle.Linear,
+	[Enum.PoseEasingStyle.Bounce] = Enum.EasingStyle.Bounce,
+	[Enum.PoseEasingStyle.Cubic] = Enum.EasingStyle.Cubic,
+	[Enum.PoseEasingStyle.Elastic] = Enum.EasingStyle.Elastic,
+	[Enum.PoseEasingStyle.Constant] = Enum.EasingStyle.Linear,
+}
+
+local tDirection = {
+	[Enum.PoseEasingDirection.In] = Enum.EasingDirection.In,
+	[Enum.PoseEasingDirection.Out] = Enum.EasingDirection.Out,
+	[Enum.PoseEasingDirection.InOut] = Enum.EasingDirection.InOut,
+}
+
+local function BuildTweens(Model, KeyFrameSequence, SpeedMult)
+	SpeedMult = SpeedMult or 1
+	local frames = {}
+	for _, kf in ipairs(KeyFrameSequence:GetKeyframes()) do
+		table.insert(frames, {Time = kf.Time, Keyframe = kf})
+	end
+	table.sort(frames, function(a,b) return a.Time < b.Time end)
+	local tweens, motors, values, keyPoses = {}, {}, {}, {}
+	local function GetMotorFromPose(pose)
+		for _,v in pairs(Model:GetDescendants()) do
+			if v:IsA("Motor6D") and v.Part1 and v.Part1.Name == pose.Name and v.Part0 and v.Part0.Name == pose.Parent.Name then
+				return v
+			end
+		end
+	end
+	for i,frame in ipairs(frames) do
+		keyPoses[i] = {Time = frame.Time, Poses={}}
+		for _, pose in ipairs(frame.Keyframe:GetDescendants()) do
+			if pose:IsA("Pose") and pose.Weight > 0 then
+				local motor = motors[pose.Name] or GetMotorFromPose(pose)
+				if motor then
+					motors[pose.Name] = motor
+					if not values[pose.Name] then
+						local cv = Instance.new("CFrameValue")
+						cv.Value = motor.Transform
+						cv.Parent = motor
+						values[pose.Name] = cv
+					end
+					keyPoses[i].Poses[pose.Name] = {Motor=motor, Pose=pose}
+				end
+			end
+		end
+	end
+	if #keyPoses > 1 then
+		local last = {}
+		for i=1,#keyPoses-1 do
+			local k1, k2 = keyPoses[i], keyPoses[i+1]
+			local dur = (k2.Time - k1.Time) / SpeedMult
+			tweens[i] = {Time = dur, Tweens={}}
+			for n,d in pairs(k1.Poses) do last[n]=d end
+			for n,d in pairs(k2.Poses) do
+				if last[n] then
+					local info = TweenInfo.new(dur, tStyle[d.Pose.EasingStyle], tDirection[d.Pose.EasingDirection])
+					tweens[i].Tweens[n] = TweenService:Create(values[n], info, {Value=d.Pose.CFrame})
+				end
+			end
+		end
+	end
+	local totalDuration = 0
+	for _, segment in ipairs(tweens) do totalDuration = totalDuration + segment.Time end
+	return tweens, motors, values, totalDuration
+end
+
+local function PlayKeyframeSequence(Model, KeyFrameSequence, SpeedMult, looped, onFinished)
+	SpeedMult = SpeedMult or 1
+	local tweens, motors, values, totalDuration = BuildTweens(Model, KeyFrameSequence, SpeedMult)
+	local stopped = false
+	local hb
+	hb = RunService.Heartbeat:Connect(function()
+		if stopped then if hb then hb:Disconnect() end return end
+		for n,motor in pairs(motors) do motor.Transform = values[n].Value end
+	end)
+	local function loop()
+		repeat
+			for _, segment in ipairs(tweens) do
+				for _, tw in pairs(segment.Tweens) do tw:Play() end
+				task.wait(segment.Time)
+				if stopped then break end
+			end
+			if not looped and not stopped then
+				stopped = true
+				if onFinished then onFinished() end
+				break
+			end
+		until stopped
+	end
+	task.spawn(loop)
+	return {
+		stop = function()
+			stopped = true
+			if hb then hb:Disconnect() hb = nil end
+			for _,v in pairs(values) do if v then v:Destroy() end end
+		end,
+		getLength = function() return totalDuration end
+	}
+end
+
+local function getRelativeCFrame(item, referencePart)
+	if not referencePart or not item then return CFrame.new() end
+	if item:IsA("Attachment") then
+		return referencePart.CFrame:Inverse() * (item.Parent.CFrame * item.CFrame)
+	end
+	return referencePart.CFrame:Inverse() * item.CFrame
+end
+
+local function weldToCharacter(character, part, targetPart, relativeCFrame, useMotor6D, offset)
+	part.Anchored = false
+	part.CanCollide = false
+	local finalCFrame = (relativeCFrame or CFrame.new()) * (offset or CFrame.new())
+	if useMotor6D then
+		local motor = Instance.new("Motor6D")
+		motor.Part0 = targetPart
+		motor.Part1 = part
+		motor.C0 = finalCFrame
+		motor.C1 = CFrame.new()
+		motor.Parent = character
+	else
+		local weld = Instance.new("Weld")
+		weld.Part0 = targetPart
+		weld.Part1 = part
+		weld.C0 = finalCFrame
+		weld.C1 = CFrame.new()
+		weld.Parent = character
+	end
+	part.Parent = character
+end
+
+local function moveAttachmentToPlayerHead(character, attachment, hackLordHead)
+	if not attachment or not hackLordHead then return end
+	local relativeCFrame = getRelativeCFrame(attachment, hackLordHead)
+	attachment.CFrame = relativeCFrame
+	attachment.Parent = character.Head
+end
+
+local function createSafeFolder()
+	local safeFolder = LocalPlayer.PlayerScripts:FindFirstChild("SavedKeyframes")
+	if not safeFolder then
+		safeFolder = Instance.new("Folder")
+		safeFolder.Name = "SavedKeyframes"
+		safeFolder.Parent = LocalPlayer.PlayerScripts
+	end
+	return safeFolder
+end
+
+local function CloneMe(char)
+	if not char then return nil end
+	char.Archivable = true
+	local clone = char:Clone()
+	char.Archivable = false
+	return clone
+end
+
+local function setupCharacter(character)
+	if hasAppliedHackLord then return end
+	hasAppliedHackLord = true
+	task.wait(1)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		local animator = humanoid:FindFirstChildOfClass("Animator")
+		if animator then animator:Destroy() end
+	end
+	local success, model = pcall(function() return game:GetObjects("rbxassetid://102473641596712")[1] end)
+	if not success or not model then return end
+	local hackLord = model:FindFirstChild("HackLord")
+	if not hackLord then model:Destroy() return end
+	local hackLordHead = hackLord:FindFirstChild("Head")
+	local referencePart = hackLord.PrimaryPart
+	if not referencePart then
+		for _, part in ipairs(hackLord:GetDescendants()) do
+			if part:IsA("BasePart") then
+				referencePart = part
+				break
+			end
+		end
+	end
+	if not referencePart then model:Destroy() return end
+	local components = {
+		ExtraModels = hackLord:FindFirstChild("ExtraModels"),
+		Coffin = hackLord:FindFirstChild("Coffin"),
+		ErlkingCoffinChains = hackLord:FindFirstChild("ErlkingCoffinChains"),
+		HaxxedCrown = hackLord:FindFirstChild("Haxxed Crown")
+	}
+	for name, component in pairs(components) do
+		if component then
+			if component:IsA("Model") then
+				for _, part in ipairs(component:GetDescendants()) do
+					if part:IsA("BasePart") then
+						local relativeCFrame = getRelativeCFrame(part, referencePart)
+						weldToCharacter(character, part, character.HumanoidRootPart, relativeCFrame, true)
+					end
+				end
+			elseif component:IsA("BasePart") then
+				local relativeCFrame = getRelativeCFrame(component, referencePart)
+				if name == "ErlkingCoffinChains" then
+					if character:FindFirstChild("Torso") then
+						weldToCharacter(character, component, character.Torso, relativeCFrame, false)
+					else
+						weldToCharacter(character, component, character.HumanoidRootPart, relativeCFrame, false)
+					end
+				elseif name == "HaxxedCrown" then
+					local offset = CFrame.new(0, -1.5, 0)
+					weldToCharacter(character, component, character.Head, relativeCFrame, false, offset)
+				else
+					weldToCharacter(character, component, character.HumanoidRootPart, relativeCFrame, true)
+				end
+			end
+		end
+	end
+	if hackLordHead then
+		for _, attachment in ipairs(hackLordHead:GetChildren()) do
+			if attachment:IsA("Attachment") and (attachment.Name == "Attachment" or attachment.Name == "RightEye") then
+				moveAttachmentToPlayerHead(character, attachment, hackLordHead)
+			elseif attachment:IsA("Attachment") then
+				moveAttachmentToPlayerHead(character, attachment, hackLordHead)
+			end
+		end
+	end
+	local animSaves = hackLord:FindFirstChild("AnimSaves")
+	if animSaves then
+		local safeFolder = createSafeFolder()
+		for _, anim in ipairs(animSaves:GetChildren()) do
+			if anim:IsA("KeyframeSequence") then
+				local clone = anim:Clone()
+				clone.Parent = safeFolder
+			end
+		end
+	end
+	model:Destroy()
+	local savedKeyframes = LocalPlayer.PlayerScripts:FindFirstChild("SavedKeyframes")
+	if not savedKeyframes then return end
+	local idleAnim = savedKeyframes:FindFirstChild("Idle")
+	local walkAnim = savedKeyframes:FindFirstChild("Walk")
+	local runAnim = savedKeyframes:FindFirstChild("Run")
+	local executionAnim = savedKeyframes:FindFirstChild("Execution")
+	local executionVictimAnim = savedKeyframes:FindFirstChild("ExecutionVictim")
+	if not (idleAnim and walkAnim and runAnim) then return end
+	local currentAnimObj = nil
+	local isRunning = false
+	local connections = {}
+	local footstepCoroutine = nil
+	local debounces = {}
+	local abilityButtons = {}
+	local abilityLabels = {}
+	local extraWaits = {
+		["Slash"] = 0.5,
+		["Mass Infection"] = 1,
+		["Entaglement"] = 0.5,
+		["Unstable Eye"] = 0.9,
+		["Rejuvenate the rotten"] = 2
+	}
+	local abilityCooldowns = {
+		["Slash"] = 2
+	}
+	local abilitySounds = {
+		["Mass Infection"] = "rbxassetid://108321828055199",
+		["Entaglement"] = "rbxassetid://85739345749675",
+		["Unstable Eye"] = "rbxassetid://131593634043156",
+		["Rejuvenate the rotten"] = "rbxassetid://140664427628179",
+		["Slash"] = "rbxassetid://98622759453637",
+	}
+	local isPlayingAbility = false
+
+	local function playAnimation(anim, speedMult, looped, onFinish)
+		if currentAnimObj then
+			currentAnimObj.stop()
+			currentAnimObj = nil
+		end
+		if anim then
+			currentAnimObj = PlayKeyframeSequence(character, anim, speedMult or 2, looped, onFinish)
+		end
+	end
+
+	local sound1 = Instance.new("Sound", character.HumanoidRootPart)
+	sound1.SoundId = "rbxassetid://131164918216963"
+	local sound2 = Instance.new("Sound", character.HumanoidRootPart)
+	sound2.SoundId = "rbxassetid://87336115451799"
+	local currentSound = 1
+
+	local function playFootstep()
+		(currentSound == 1 and sound1 or sound2):Play()
+		currentSound = 3 - currentSound
+	end
+
+	function startFootsteps()
+		if footstepCoroutine then coroutine.close(footstepCoroutine) end
+		footstepCoroutine = coroutine.create(function()
+			while humanoid and humanoid.MoveDirection.Magnitude > 0 and humanoid.WalkSpeed > 2 and not isPlayingAbility do
+				playFootstep()
+				task.wait(isRunning and 0.5 or 0.7)
+			end
+		end)
+		coroutine.resume(footstepCoroutine)
+	end
+
+	function stopFootsteps()
+		if footstepCoroutine then coroutine.close(footstepCoroutine) footstepCoroutine = nil end
+	end
+
+	local layerSounds = {}
+	for i = 1, 3 do
+		local sound = Instance.new("Sound")
+		sound.SoundId = getcustomasset("Layer" .. i .. ".mp3")
+		sound.Volume = 1
+		sound.Looped = true
+		sound.Parent = Workspace
+		layerSounds[i] = sound
+	end
+	local chaseSoundNormal = Instance.new("Sound")
+	chaseSoundNormal.SoundId = getcustomasset("Theme.mp3")
+	chaseSoundNormal.Volume = 1
+	chaseSoundNormal.Looped = true
+	chaseSoundNormal.Parent = Workspace
+	local chaseSoundLMS = Instance.new("Sound")
+	chaseSoundLMS.SoundId = getcustomasset("LMS.mp3")
+	chaseSoundLMS.Volume = 1
+	chaseSoundLMS.Looped = true
+	chaseSoundLMS.Parent = Workspace
+	local useLMS = false
+	local terrorCoroutine = nil
+	local currentLayer = nil
+	local isChasePlaying = false
+	local isLMSPlaying = false
+
+	local layerThresholds = {45, 35, 25}
+	local chaseThreshold = 15
+
+	function startTerrorRadius()
+		if terrorCoroutine then coroutine.close(terrorCoroutine) end
+		terrorCoroutine = coroutine.create(function()
+			while character and character.Parent do
+				local hrp = character:FindFirstChild("HumanoidRootPart")
+				if not hrp then break end
+				local minDist = math.huge
+				for _, p in ipairs(Players:GetPlayers()) do
+					if p ~= LocalPlayer and p.Character then
+						local pHrp = p.Character:FindFirstChild("HumanoidRootPart")
+						if pHrp then
+							local dist = (pHrp.Position - hrp.Position).Magnitude
+							if dist < minDist then minDist = dist end
+						end
+					end
+				end
+				if useLMS then
+					if not isLMSPlaying then
+						chaseSoundLMS:Play()
+						isLMSPlaying = true
+					end
+					chaseSoundNormal:Stop()
+					isChasePlaying = false
+					if currentLayer then
+						layerSounds[currentLayer]:Stop()
+						currentLayer = nil
+					end
+				else
+					chaseSoundLMS:Stop()
+					isLMSPlaying = false
+					if minDist > 45 then
+						if currentLayer then
+							layerSounds[currentLayer]:Stop()
+							currentLayer = nil
+						end
+						if isChasePlaying then
+							chaseSoundNormal:Stop()
+							isChasePlaying = false
+						end
+					elseif minDist > 35 then
+						if currentLayer ~= 1 then
+							if currentLayer then layerSounds[currentLayer]:Stop() end
+							layerSounds[1]:Play()
+							currentLayer = 1
+						end
+						if isChasePlaying then chaseSoundNormal:Stop() isChasePlaying = false end
+					elseif minDist > 25 then
+						if currentLayer ~= 2 then
+							if currentLayer then layerSounds[currentLayer]:Stop() end
+							layerSounds[2]:Play()
+							currentLayer = 2
+						end
+						if isChasePlaying then chaseSoundNormal:Stop() isChasePlaying = false end
+					elseif minDist > chaseThreshold then
+						if currentLayer ~= 3 then
+							if currentLayer then layerSounds[currentLayer]:Stop() end
+							layerSounds[3]:Play()
+							currentLayer = 3
+						end
+						if isChasePlaying then chaseSoundNormal:Stop() isChasePlaying = false end
+					else
+						if currentLayer then layerSounds[currentLayer]:Stop() currentLayer = nil end
+						if not isChasePlaying then chaseSoundNormal:Play() isChasePlaying = true end
+					end
+				end
+				task.wait(0.5)
+			end
+		end)
+		coroutine.resume(terrorCoroutine)
+	end
+
+	function stopTerrorRadius()
+		if terrorCoroutine then coroutine.close(terrorCoroutine) terrorCoroutine = nil end
+		for _, s in ipairs(layerSounds) do s:Stop() s:Destroy() end
+		chaseSoundNormal:Stop() chaseSoundNormal:Destroy()
+		chaseSoundLMS:Stop() chaseSoundLMS:Destroy()
+	end
+
+	local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+	screenGui.Name = "RunToggleGui"
+	screenGui.ResetOnSpawn = false
+
+	local mainFrame = Instance.new("Frame", screenGui)
+	mainFrame.Size = UDim2.new(0, 700, 0, 120)
+	mainFrame.Position = UDim2.new(0.5, -100, 1, -140)
+	mainFrame.BackgroundTransparency = 1
+
+	local toggleButton = Instance.new("ImageButton", mainFrame)
+	toggleButton.Size = UDim2.new(0, 100, 0, 100)
+	toggleButton.Position = UDim2.new(0, 500, 0, 10)
+	toggleButton.BackgroundTransparency = 1
+	toggleButton.Image = "rbxassetid://132640025048316"
+
+	local abilityOrder = {"Rejuvenate the rotten", "Unstable Eye", "Mass Infection", "Entaglement", "Slash"}
+	local abilityImages = {
+		["Slash"] = "rbxassetid://120590195585579",
+		["Entaglement"] = "rbxassetid://119069138923680",
+		["Mass Infection"] = "rbxassetid://112065267803856",
+		["Unstable Eye"] = "rbxassetid://135373963092918",
+		["Rejuvenate the rotten"] = "rbxassetid://102037518703784",
+	}
+
+	local lmsToggleButton = Instance.new("TextButton", screenGui)
+	lmsToggleButton.Size = UDim2.new(0, 100, 0, 50)
+	lmsToggleButton.Position = UDim2.new(0.5, -50, 0, 10)
+	lmsToggleButton.Text = "LMS (Off)"
+	lmsToggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+	lmsToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+	for i, name in ipairs(abilityOrder) do
+		local keyframe = savedKeyframes:FindFirstChild(name)
+		if keyframe then
+			local button = Instance.new("ImageButton", mainFrame)
+			button.Size = UDim2.new(0, 90, 0, 90)
+			button.Position = UDim2.new(0, (i-1) * 100, 0, 10)
+			button.BackgroundTransparency = 1
+			button.Image = abilityImages[name]
+			local corner = Instance.new("UICorner", button)
+			corner.CornerRadius = UDim.new(1, 0)
+			local label = Instance.new("TextLabel", mainFrame)
+			label.Size = UDim2.new(0, 90, 0, 20)
+			label.Position = UDim2.new(0, (i-1) * 100, 0, 100)
+			label.BackgroundTransparency = 1
+			label.Text = name
+			label.TextScaled = true
+			label.TextColor3 = Color3.new(1,1,1)
+			label.TextXAlignment = Enum.TextXAlignment.Center
+			abilityButtons[name] = button
+			abilityLabels[name] = label
+			debounces[name] = false
+			connections["ability_" .. i] = button.MouseButton1Click:Connect(function()
+				if debounces[name] or isPlayingAbility then return end
+				isPlayingAbility = true
+				debounces[name] = true
+				if abilityLabels[name] then abilityLabels[name].Text = name .. " (CD)" end
+				local cooldown = abilityCooldowns[name] or 7
+				task.delay(cooldown, function()
+					debounces[name] = false
+					if abilityLabels[name] then abilityLabels[name].Text = name end
+				end)
+				humanoid.WalkSpeed = 2
+				stopFootsteps()
+				if currentAnimObj then currentAnimObj.stop() currentAnimObj = nil end
+				local animObj = PlayKeyframeSequence(character, keyframe, 2, false)
+				local soundId = abilitySounds[name]
+				if soundId then
+					local abilitySound = Instance.new("Sound", character.HumanoidRootPart)
+					abilitySound.SoundId = soundId
+					abilitySound:Play()
+					abilitySound.Ended:Connect(function() abilitySound:Destroy() end)
+				end
+				if name == "Unstable Eye" then
+					task.spawn(function()
+						task.wait(1)
+						local blur = Instance.new("BlurEffect")
+						blur.Size = 24
+						blur.Parent = Lighting
+						local highlights = {}
+						for _, p in ipairs(Players:GetPlayers()) do
+							if p ~= LocalPlayer and p.Character then
+								local highlight = Instance.new("Highlight")
+								highlight.FillColor = Color3.fromRGB(255, 165, 0)
+								highlight.OutlineColor = Color3.fromRGB(255, 165, 0)
+								highlight.FillTransparency = 0.5
+								highlight.OutlineTransparency = 0
+								highlight.Parent = p.Character
+								table.insert(highlights, highlight)
+							end
+						end
+						task.wait(5)
+						blur:Destroy()
+						for _, h in ipairs(highlights) do h:Destroy() end
+					end)
+				elseif name == "Mass Infection" then
+					task.spawn(function()
+						task.wait(1.5)
+						local hrp = character:FindFirstChild("HumanoidRootPart")
+						if hrp then
+							local projectile = Instance.new("MeshPart")
+							projectile.MeshId = "rbxassetid://2836527412"
+							projectile.Color = Color3.new(0, 1, 0)
+							projectile.Size = Vector3.new(1, 1, 1)
+							projectile.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
+							projectile.Anchored = true
+							projectile.CanCollide = false
+							projectile.Parent = Workspace
+							local moveConn = RunService.Heartbeat:Connect(function(dt)
+								if projectile and projectile.Parent then
+									projectile.CFrame = projectile.CFrame * CFrame.new(0, 0, -50 * dt)
+								end
+							end)
+							task.delay(6, function()
+								if moveConn then moveConn:Disconnect() end
+								if projectile and projectile.Parent then projectile:Destroy() end
+							end)
+						end
+					end)
+				elseif name == "Slash" then
+					task.spawn(function()
+						local hitbox = Instance.new("Part")
+						hitbox.Size = Vector3.new(3, 3, 5)
+						hitbox.Transparency = 1
+						hitbox.CanCollide = false
+						hitbox.CFrame = character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+						hitbox.Parent = Workspace
+						local weld = Instance.new("WeldConstraint")
+						weld.Part0 = character.HumanoidRootPart
+						weld.Part1 = hitbox
+						weld.Parent = hitbox
+						local connection
+						connection = hitbox.Touched:Connect(function(hit)
+							if not hit or not hit.Parent then return end
+							if hit:IsDescendantOf(character) then return end
+							local targetChar = hit:FindFirstAncestorWhichIsA("Model")
+							if not targetChar then return end
+							local targetHum = targetChar:FindFirstChildOfClass("Humanoid")
+							if not targetHum then return end
+							local targetPlayer = Players:GetPlayerFromCharacter(targetChar)
+							if not targetPlayer then return end
+							local dmg = 20
+							local isLastHit = (targetHum.Health - dmg <= 0)
+							if isLastHit then
+								targetHum.Health = 1
+								local charClone = CloneMe(targetChar)
+								if charClone then
+									charClone.Parent = Workspace
+									local cloneHRP = charClone:FindFirstChild("HumanoidRootPart")
+									if cloneHRP then
+										cloneHRP.CFrame = character.HumanoidRootPart.CFrame
+										local cloneWeld = Instance.new("WeldConstraint")
+										cloneWeld.Part0 = character.HumanoidRootPart
+										cloneWeld.Part1 = cloneHRP
+										cloneWeld.Parent = cloneHRP
+										PlayKeyframeSequence(character, executionAnim, 2, false, function()
+											if charClone and charClone.Parent then charClone:Destroy() end
+											isPlayingAbility = false
+										end)
+										if executionVictimAnim then
+											PlayKeyframeSequence(charClone, executionVictimAnim, 2, false, function()
+												if charClone and charClone.Parent then charClone:Destroy() end
+											end)
+										end
+										targetHum:TakeDamage(dmg)
+										targetHum.Health = targetHum.MaxHealth
+									end
+								end
+								if connection then connection:Disconnect() connection = nil end
+								if hitbox and hitbox.Parent then hitbox:Destroy() end
+							else
+								targetHum:TakeDamage(dmg)
+								if connection then connection:Disconnect() connection = nil end
+								if hitbox and hitbox.Parent then hitbox:Destroy() end
+							end
+						end)
+						task.delay(2, function()
+							if connection then connection:Disconnect() connection = nil end
+							if hitbox and hitbox.Parent then hitbox:Destroy() end
+						end)
+					end)
+				end
+				local length = 0
+				local ok, obj = pcall(function() return PlayKeyframeSequence(character, keyframe, 2, false) end)
+				if ok and obj and obj.getLength then
+					length = obj.getLength()
+					obj.stop()
+				end
+				task.wait(length + (extraWaits[name] or 0))
+				isPlayingAbility = false
+				humanoid.WalkSpeed = isRunning and 28 or 16
+				if humanoid.MoveDirection.Magnitude > 0 then
+					playAnimation(isRunning and runAnim or walkAnim, 2, true)
+					startFootsteps()
+				else
+					playAnimation(idleAnim, 2, true)
+				end
+			end)
+		end
+	end
+
+	local lastMagnitude = 0
+	connections.move = RunService.Heartbeat:Connect(function()
+		if not humanoid or not character.Parent or isPlayingAbility then return end
+		local magnitude = humanoid.MoveDirection.Magnitude
+		if magnitude > 0 and lastMagnitude == 0 and humanoid.WalkSpeed > 2 then
+			startFootsteps()
+			playAnimation(isRunning and runAnim or walkAnim, 2, true)
+		elseif magnitude == 0 and lastMagnitude > 0 then
+			stopFootsteps()
+			playAnimation(idleAnim, 2, true)
+		end
+		lastMagnitude = magnitude
+	end)
+
+	connections.cleanup = character.AncestryChanged:Connect(function()
+		if not character.Parent then
+			for _, conn in pairs(connections) do
+				if conn and typeof(conn) == "RBXScriptConnection" then
+					conn:Disconnect()
+				end
+			end
+			stopFootsteps()
+			stopTerrorRadius()
+			if screenGui and screenGui.Parent then screenGui:Destroy() end
+		end
+	end)
+
+	local function toggleRunState()
+		isRunning = not isRunning
+		humanoid.WalkSpeed = isRunning and 28 or 16
+		if humanoid.MoveDirection.Magnitude > 0 and not isPlayingAbility then
+			playAnimation(isRunning and runAnim or walkAnim, 2, true)
+		end
+	end
+
+	connections.toggle = toggleButton.MouseButton1Click:Connect(toggleRunState)
+	connections.lmsToggle = lmsToggleButton.MouseButton1Click:Connect(function()
+		useLMS = not useLMS
+		lmsToggleButton.Text = useLMS and "LMS (On)" or "LMS (Off)"
+	end)
+
+	humanoid.WalkSpeed = 16
+	playAnimation(idleAnim, 2, true)
+	startTerrorRadius()
+end
+
+local function onCharacterAdded(character)
+	if not hasAppliedHackLord then setupCharacter(character) end
+end
+
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+if LocalPlayer.Character then onCharacterAdded(LocalPlayer.Character) end
