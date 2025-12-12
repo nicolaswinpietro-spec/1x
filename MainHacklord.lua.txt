@@ -1117,19 +1117,19 @@ table.insert(CleanUp, UserInputService.InputBegan:Connect(function(Input, gp)
 		
 		if KeyCode == Enum.KeyCode.LeftShift then
 			Shiftlock()
-		elseif KeyCode == Enum.KeyCode.RightShift then
-			Sprinting()
-		elseif KeyCode == Enum.KeyCode.LeftControl then
-			Slash()
 		elseif KeyCode == Enum.KeyCode.Q then
-			MassInfection()
+			Sprinting()
+		elseif KeyCode == Enum.KeyCode.MouseButton1 then
+			Slash()
 		elseif KeyCode == Enum.KeyCode.E then
+			MassInfection()
+		elseif KeyCode == Enum.KeyCode.C then
 			Entanglement()
-		elseif KeyCode == Enum.KeyCode.R then
+		elseif KeyCode == Enum.KeyCode.X then
 			UnstableEye()
-		elseif KeyCode == Enum.KeyCode.T then
+		elseif KeyCode == Enum.KeyCode.V then
 			RejuvenateTheRotten()
-		elseif KeyCode == Enum.KeyCode.U then
+		elseif KeyCode == Enum.KeyCode.I then
 			Introduction()
 		elseif KeyCode == Enum.KeyCode.P then
 			ForceTriggerLMS = not ForceTriggerLMS
@@ -1461,5 +1461,6 @@ table.insert(CleanUp, PreRender:Connect(function()
 	end
 
 end))
+
 
 
