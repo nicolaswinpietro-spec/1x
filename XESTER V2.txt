@@ -542,7 +542,7 @@ if tauntdebounce then return end
 tauntdebounce = true
 if not secondform then
 local bell = Instance.new("Sound",Torso)
-bell.SoundId = "rbxassetid://4577865183"
+bell.SoundId = "rbxassetid://"
 bell.Volume = 10
 bell.Pitch = math.random(9,10)/10
 bell:Play()
