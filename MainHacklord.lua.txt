@@ -138,13 +138,13 @@ local getasset = getcustomasset or getsynasset or function(a) return "rbxasset:/
 local HacklordInfo = {
 	Health = 1100;
 	Speed = 8;
-	SprintSpeed = 27;
-	SlashDamage = 20;
+	SprintSpeed = 32;
+	SlashDamage = 0;
 	SlashPoisonLevel = 1;
 	SlashPoisonDuration = 5;
 	SlashGlitchLevel = 1;
 	SlashGlitchDuration = 5;
-	ExecutionDamage = 20;
+	ExecutionDamage = 0;
 	MassInfectionSlashDamage = 5;
 	MassInfectionCloseSlashDamage = 58.33,
 	MassInfectionSlashPoisonLevel = 5;
@@ -326,7 +326,7 @@ for _,v in next, Animations:GetChildren() do
 	local Name = v.Name
 	HacklordInfo.SavedAnimations[Name] = v
 	v.Parent = Humanoid
-	
+
 	if not string.find(Name,"Zombie") then
 		AnimationTracks[Name] = LocalAnimator:LoadAnimation(v)
 	end
@@ -401,14 +401,14 @@ end
 
 local NewSFX = function(ContentId, CFrame, Volume, Speed, TimePos)
 	local SoundPart = NewInstance("Part", RootPart, {CFrame = CFrame or RootPart.CFrame, Size = Vector3.new(), CanCollide = false, Anchored = true, Transparency = 1, Massless = true, CanQuery = false, CanTouch = false, CastShadow = false})
-	
+
 	local Sound = New("Sound", SoundPart)
 	Sound.SoundId = ContentId or ""
 	Sound.Volume = Volume or 0.5
 	Sound.PlaybackSpeed = Speed or 1
 	Sound.TimePosition = TimePos or 0
 	Sound.Playing = true
-	
+
 	Sound.Ended:Once(function() SoundPart:Destroy() end)
 end
 
@@ -417,7 +417,7 @@ local NewHitmarker = function(ContentId, Volume)
 	Sound.SoundId = ContentId or ""
 	Sound.Volume = Volume or 0.5
 	Sound.Playing = true
-	
+
 	Sound.Ended:Once(function() Sound:Destroy() end)
 end
 
@@ -440,7 +440,7 @@ end
 local IndicateDamage = function(Humanoid, Value)
 	if not Humanoid then return end
 	if not Settings.Hitmarker then return end
-	
+
 	local c = Humanoid.Parent
 	local Root = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso") or c:FindFirstChild("UpperTorso") or c:FindFirstChild("Head") or c.PrimaryPart
 	if HitmarkerUI and RootPart then
@@ -449,10 +449,10 @@ local IndicateDamage = function(Humanoid, Value)
 		local Title = HitmarkerUI.Title
 		HitmarkerUI.Adornee = Part
 		HitmarkerUI.Parent = Part
-		
+
 		local Size = HitmarkerUI.Size + UDim2.fromScale(2,2)
 		Title.Text = math.round(Value * 100) / 100
-		
+
 		TweenService:Create(HitmarkerUI,TweenInfo.new(0.25),{Size=Size}):Play()
 		FWait(1)
 		AddDebris(Part,1.5)
@@ -512,7 +512,7 @@ end
 
 local VisualHitbox = function(Origin, RangeOrVector)
 	if not Settings.VisibleHitbox then return nil end
-	
+
 	if typeof(RangeOrVector) == "Vector3" then
 		local HB = NewInstance("Part",HitboxFolder,{Name="VisualHitbox_Debug",Anchored=true,CanCollide=false,CanTouch=false,CanQuery=false,Massless=true,CastShadow=false,Size=RangeOrVector,CFrame=Origin,Transparency=0.5,Color=Color3.new(1,0,0),Material="ForceField"})
 		AddDebris(HB, 0.3)
@@ -527,27 +527,27 @@ end
 local DamageFromHitbox = function(ScanCount, WaitEachScan, From, Offset, Size, Value, StopAfterHit, HitOneTargetOnly, OnDeathFunction)
 	if not From then return end
 	local Humanoids = {}
-	
+
 	local Stop = false
 	local StopEntirely = false
 	Offset = Offset or CFrame.identity
 	local HB = NewInstance("Part",RootPart,{Name="Hitbox",Anchored=true,CanCollide=false,CanTouch=false,CanQuery=false,Massless=true,CastShadow=false,Size=Size,Transparency=1})
-	
+
 	task.spawn(function()
 		for _ = 1, ScanCount or 1 do
 			if Stop then if HB then HB:Destroy() end break end
 			if Stop then return end
-			
+
 			local Origin = From.CFrame * Offset
 			HB.CFrame = Origin
-			
+
 			local Parts = Workspace:GetPartsInPart(HB, OverlayParams)
 			local VisualHB = VisualHitbox(Origin, Size)
-		
+
 			for _, Part in next, Parts do
 				if StopEntirely then break end
 				if StopEntirely then return end
-				
+
 				local Model = Part.Parent
 				if Model:IsA("Model") then
 					local Humanoid = Model:FindFirstChildOfClass("Humanoid")
@@ -565,7 +565,7 @@ local DamageFromHitbox = function(ScanCount, WaitEachScan, From, Offset, Size, V
 		end
 		if HB then HB:Destroy() end
 	end)
-	
+
 	return function()
 		Stop = true
 	end
@@ -625,31 +625,31 @@ local ApplyAI = function(Model)
 	local AttackRange = HacklordInfo.ZombieAttackRange
 	local AttackCooldown = HacklordInfo.ZombieAttackCooldown
 	local AttackDamage = HacklordInfo.ZombieAttackDamage
-	
+
 	if Humanoid then
 		local Descendants = Model:GetDescendants()
-		
+
 		local HealthInstance = InitHealthSystem(Humanoid)
-		
+
 		NewInstance("StringValue",Humanoid,{Name="HacklordAllies"})
-		
+
 		local AAnimator = AnimationModule.new(Humanoid)
 		local Idle = AAnimator:LoadAnimation(HacklordInfo.SavedAnimations["ZombieIdle"])
 		local Walk = AAnimator:LoadAnimation(HacklordInfo.SavedAnimations["ZombieWalk"])
 		local Run = AAnimator:LoadAnimation(HacklordInfo.SavedAnimations["ZombieRun"])
 		local Attack = AAnimator:LoadAnimation(HacklordInfo.SavedAnimations["ZombieAttack"])
 		local Summon = AAnimator:LoadAnimation(HacklordInfo.SavedAnimations["ZombieSummon"])
-		
+
 		Idle.Priority = Enum.AnimationPriority.Movement
 		Walk.Priority = Enum.AnimationPriority.Movement
 		Run.Priority = Enum.AnimationPriority.Movement
 		Attack.Priority = Enum.AnimationPriority.Action
 		Summon.Priority = Enum.AnimationPriority.Action2
-		
+
 		Summon:Play(1,10)
 		Summon.Ended:Wait()
 		Summon:Stop(1)
-		
+
 		local Distance = 9e9
 		local Wander = true
 		local Chasing = false
@@ -676,13 +676,13 @@ local ApplyAI = function(Model)
 				Chasing = false
 			end
 		end
-		
+
 		HealthInstance:GetPropertyChangedSignal("Value"):Connect(function()
 			if Humanoid then
 				Humanoid.Health = 0
 			end
 		end)
-		
+
 		local End = function()
 			for _,v in next,Descendants do
 				local IsBasePart, IsDecal = v:IsA("BasePart"), v:IsA("Decal")
@@ -696,7 +696,7 @@ local ApplyAI = function(Model)
 			Model:Destroy()
 			if AAnimator and not AAnimator._destroyed then AAnimator:Destroy() end
 		end
-		
+
 		local Con
 		local timecheck, timecheck2, cooldownasync = 0, 0, AttackCooldown
 		Con = PreRender:Connect(function(deltatime)
@@ -711,7 +711,7 @@ local ApplyAI = function(Model)
 				timecheck = 0
 				ReturnNearestTarget()
 			end
-			
+
 			if Distance <= AttackRange then
 				if cooldownasync > AttackCooldown then
 					Attack:Play(1,10)
@@ -725,7 +725,7 @@ local ApplyAI = function(Model)
 					end
 				end
 			end
-			
+
 			local MoveMagnitude = (RootPart.Velocity*Vector3.new(1,0,1)).Magnitude
 			if MoveMagnitude > HacklordInfo.ZombieWalkSpeed / 2 then
 				if Chasing then
@@ -748,7 +748,7 @@ local ApplyAI = function(Model)
 					Run:Stop(1)
 				end
 			end
-			
+
 			if Wander then
 				Humanoid.WalkSpeed = HacklordInfo.ZombieWalkSpeed
 				timecheck2 += deltatime
@@ -790,7 +790,7 @@ end
 
 local Introduction = function()
 	if StopEverything or debouche then return end
-	
+
 	HeadLook = false
 	debouchepriority = 2
 	debouche = true
@@ -806,41 +806,41 @@ end
 local Slash = function()
 	if StopEverything or debouche then return end
 	local isExecuting = false
-	
+
 	local AttackFunc = function()
 		FWait(0.4)
-		
+
 		DamageFromHitbox(10, 0.02, RootPart, CFrame.new(0,0,-3-3*RunMagnitude), Vector3.new(6,5.75,7.5), HacklordInfo.SlashDamage, true, false, function(Hum)
 			if Hum:FindFirstChild("HacklordIsHere") or Hum:FindFirstChild("HacklordAllies") then
 				return
 			end
-			
+
 			local ExecuteDamage = HacklordInfo.ExecutionDamage
-			
+
 			local SavedShiftlockOn = ShiftlockOn
 			ShiftlockOn = nil
 			debouchepriority = 999
 			isExecuting = true
-			
+
 			local RealCharacter = Hum.Parent
 			local RealRoot = ReturnRoot(RealCharacter)
 			local LastParent = RealCharacter.Parent
 			Hum.BreakJointsOnDeath = false
-			
+
 			local FakeCharacter = Players:CreateHumanoidModelFromDescription(Hum:GetAppliedDescription(),Enum.HumanoidRigType.R6)
 			local Root = ReturnRoot(FakeCharacter)
 			local Huma = FakeCharacter:FindFirstChildOfClass("Humanoid")
 			local Children = FakeCharacter:GetChildren()
-			
+
 			NewInstance("StringValue",Huma,{Name="HacklordIsHere"})
 			Huma.BreakJointsOnDeath = false
 			Huma.Health = 0
-			
+
 			Root.CFrame = RootPart.CFrame
-			
+
 			local Animator = AnimationModule.new(Huma)
 			local Executed = Animator:LoadAnimation(HacklordInfo.SavedAnimations["ExecutionVictimRig"])
-			
+
 			local ZePlayer = Players:FindFirstChild(RealCharacter.Name)
 			if ZePlayer then
 				FakeCharacter.Name = ZePlayer.DisplayName
@@ -848,7 +848,7 @@ local Slash = function()
 				FakeCharacter.Name = RealCharacter.Name
 			end
 			FakeCharacter.Parent = VictimFolder
-			
+
 			local Con
 			Con = Heartbeat:Connect(function()
 			for _,v in next,Children do
@@ -858,7 +858,7 @@ local Slash = function()
 			end
 				Root.CFrame = RootPart.CFrame
 			end)
-			
+
 			local OnExecute = function()
 				FWait(0.75)
 				DamageFromHitbox(1, 0, RootPart, CFrame.new(0,0,-4), Vector3.new(6.6,5.5,8), ExecuteDamage)
@@ -867,7 +867,7 @@ local Slash = function()
 				FWait(0.65)
 				DamageFromHitbox(1, 0, RootPart, CFrame.new(0,0,-4), Vector3.new(6.6,5.5,8), ExecuteDamage)
 			end
-			
+
 			Executed:Play(1,10)
 			Execution:Play(1,10)
 			NewSFX(HacklordInfo.Sounds.Execution, RootPart.CFrame, 4, 1)
@@ -888,7 +888,7 @@ local Slash = function()
 			end)
 		end)
 	end
-	
+
 	debouchepriority = 1
 	debouche = true
 	HacklordInfo.SwordTrail.Enabled = true
@@ -901,7 +901,7 @@ end
 
 local Entanglement = function()
 	if StopEverything or debouche then return end
-	
+
 	local AttackFunc = function()
 		FWait(0.48)
 		local CF = RootPart.CFrame * CFrame.new(0,0,-5)
@@ -909,19 +909,19 @@ local Entanglement = function()
 		local Speed = HacklordInfo.EntanglementSpeed
 		local LifeTime = HacklordInfo.EntanglementLifetime
 		local EntanglementDamage = HacklordInfo.EntanglementDamage
-		
+
 		NewSFX(HacklordInfo.Sounds.Entanglement, CF, 2.5, 0.75)
-		
+
 		local Swords = HacklordInfo.SwordsTemplate:Clone()
 		local Core = Swords.Core
 		Core.Anchored = true
 		Core.CFrame = CF
-		
+
 		local StopFunc = DamageFromHitbox(2500, 0.01, Core, nil, Core.Size+Vector3.new(2.5,0,5), EntanglementDamage)
-		
+
 		Swords.Parent = FolderStorage
 		table.insert(CleanUp,Swords)
-		
+
 		local stop = osclock()+LifeTime
 		while osclock()<=stop do
 			deltaRadius += (deltatime * Speed)
@@ -931,7 +931,7 @@ local Entanglement = function()
 		StopFunc()
 		Swords:Destroy()
 	end
-	
+
 	debouchepriority = 2
 	debouche = true
 	BaseEntanglement:Play(1,10,1.2)
@@ -944,10 +944,10 @@ end
 
 local MassInfection = function()
 	if StopEverything or debouche then return end
-	
+
 	local AttackFunc = function()
 		FWait(1.65)
-		
+
 		local CF = RootPart.CFrame * CFrame.new(0,0,-12)
 		local deltaRadius = 0
 		local Speed = HacklordInfo.MassInfectionShockwaveSpeed
@@ -955,22 +955,22 @@ local MassInfection = function()
 		local ShockwaveDamage = HacklordInfo.MassInfectionShockwaveDamage
 		local SlashDamage = HacklordInfo.MassInfectionSlashDamage
 		local CloseUpSlashDamage = HacklordInfo.MassInfectionCloseSlashDamage
-		
+
 		NewSFX(HacklordInfo.Sounds.EntanglementThrow, CF, 2.5, 1)
-		
+
 		local Shockwave = HacklordInfo.ShockwaveTemplate:Clone()
 		local Root = Shockwave.Root
 		Root.Anchored = true
 		Root.CFrame = CF
-		
+
 		Shockwave.Parent = FolderStorage
 		table.insert(CleanUp,Shockwave)
-		
+
 		DamageFromHitbox(1, 0.035, RootPart, CFrame.new(0,0,-3.5), Vector3.new(10,5.5,10), SlashDamage)
 		DamageFromHitbox(1, 0.035, RootPart, CFrame.new(0,0,-3), Vector3.new(8,4,8), CloseUpSlashDamage)
-		
+
 		local StopFunc = DamageFromHitbox(2500, 0.01, Root, nil, Root.Size+Vector3.new(0,0,10), ShockwaveDamage)
-		
+
 		local stop = osclock()+LifeTime
 		while osclock()<=stop do
 			deltaRadius += (deltatime * Speed)
@@ -980,7 +980,7 @@ local MassInfection = function()
 		StopFunc()
 		Shockwave:Destroy()
 	end
-	
+
 	debouchepriority = 2
 	debouche = true
 	HacklordInfo.SwordTrail.Enabled = true
@@ -997,7 +997,7 @@ end
 local UnstableEye = function()
 	if StopEverything or debouche then return end
 	if UnstableEyeEffectActive then return end
-	
+
 	local AttackFunc = function()
 		UnstableEyeEffectActive = true
 		SpeedEffectEndTime = osclock() + 6
@@ -1015,7 +1015,7 @@ local UnstableEye = function()
 		BlurEffect.Enabled = false
 		UnstableEyeEffectActive = false
 	end
-	
+
 	debouchepriority = 2
 	debouche = true
 	BaseUnstableEye:Play(1,10)
@@ -1028,7 +1028,7 @@ end
 
 local RejuvenateTheRotten = function()
 	if StopEverything or debouche then return end
-	
+
 	local AttackFunc = function()
 		FWait(2.2)
 		local StartPos = RootPart.Position + Vector3.new(0,500,0)
@@ -1039,13 +1039,13 @@ local RejuvenateTheRotten = function()
 				ClonedZombie:WaitForChild("HumanoidRootPart",9e9).Velocity = Vector3.zero
 				ClonedZombie:PivotTo(CFrame.new(CastResult.Position+Vector3.new(0,3,0)))
 				task.spawn(ApplyAI, ClonedZombie)
-				
+
 				ClonedZombie.Parent = AllyFolder
 				table.insert(CleanUp,ClonedZombie)
 			end
 		end
 	end
-	
+
 	debouchepriority = 2
 	debouche = true
 	HacklordInfo.SwordTrail.Enabled = true
@@ -1110,26 +1110,28 @@ end))
 
 table.insert(CleanUp, UserInputService.InputBegan:Connect(function(Input, gp)
 	if gp then return end
-	
+
 	local KeyCode, UserInputType = Input.KeyCode, Input.UserInputType
 	if UserInputType == Enum.UserInputType.Keyboard then
 		HideTouchUI(false)
-		
+
 		if KeyCode == Enum.KeyCode.LeftShift then
 			Shiftlock()
-		elseif KeyCode == Enum.KeyCode.Q then
+		elseif KeyCode == Enum.KeyCode.RightShift then
 			Sprinting()
-		elseif KeyCode == Enum.KeyCode.MouseButton1 then
+		elseif KeyCode == Enum.KeyCode.LeftControl then
 			Slash()
-		elseif KeyCode == Enum.KeyCode.E then
+		elseif KeyCode == Enum.KeyCode.Q then
 			MassInfection()
-		elseif KeyCode == Enum.KeyCode.C then
+		elseif KeyCode == Enum.KeyCode.E then
+
+
 			Entanglement()
-		elseif KeyCode == Enum.KeyCode.X then
+		elseif KeyCode == Enum.KeyCode.R then
 			UnstableEye()
-		elseif KeyCode == Enum.KeyCode.V then
+		elseif KeyCode == Enum.KeyCode.T then
 			RejuvenateTheRotten()
-		elseif KeyCode == Enum.KeyCode.I then
+		elseif KeyCode == Enum.KeyCode.U then
 			Introduction()
 		elseif KeyCode == Enum.KeyCode.P then
 			ForceTriggerLMS = not ForceTriggerLMS
@@ -1209,15 +1211,15 @@ local OnCharacter = function(v)
 			local c = ThisPlayer.Character
 			if c then
 				PreRender:Wait()
-				
+
 				local RootPart = ReturnRoot(c) or c:WaitForChild("HumanoidRootPart")
-				
+
 				if RootPart then
 					table.insert(RootParts, RootPart)
 					CreateFakeRoot(RootPart).Name = ThisPlayer.Name
-					
+
 					local LeaveConnect, DiedConnect
-					
+
 					local Humanoid = c:FindFirstChildOfClass("Humanoid")
 					if Humanoid then
 						DiedConnect = Humanoid.Died:Connect(function()
@@ -1315,13 +1317,13 @@ end))
 
 table.insert(CleanUp, SpeedStackLevel:GetPropertyChangedSignal("Value"):Connect(function()
 	local SpeedStackLevel = SpeedStackLevel.Value
-	
+
 	SpeedMultiply = 1 + 0.25 * SpeedStackLevel
 end))
 
 table.insert(CleanUp, Layer:GetPropertyChangedSignal("Value"):Connect(function()
 	local Layer = Layer.Value
-	
+
 	if Layer == 1 then
 		if TerrorTheme.SoundId ~= HacklordInfo.Themes.Layer1 then
 			TerrorTheme.SoundId = HacklordInfo.Themes.Layer1
@@ -1359,15 +1361,15 @@ table.insert(CleanUp, Heartbeat:Connect(function()
 	last = current
 	current = osclock()
 	deltatime = current-last
-	
+
 	local MoveDirection = Humanoid.MoveDirection
 	DirectionMagnitude = MoveDirection.Magnitude
-	
+
 	local HeadPosition = Head.CFrame.Position
 	local TorsoLookVector = Torso.CFrame.LookVector
 	local Dist = (Head.CFrame.Position-Camera.CFrame.Position).Magnitude
 	local Diff = Head.CFrame.Y-Camera.CFrame.Y
-	
+
 	if not debouche then
 		Humanoid.WalkSpeed = CurrentSpeed
 	else
@@ -1377,7 +1379,7 @@ table.insert(CleanUp, Heartbeat:Connect(function()
 			Humanoid.WalkSpeed = 0
 		end
 	end
-	
+
 	if HeadLook == true then
 		Neck.C1=Lerp(Neck.C1,CFrame.new(0,-0.5,0,-1,0,0,0,0,1,0,1,-0)*CFrame.fromEulerAngles((math.asin(Diff/Dist)*0.7),0,vector.cross(((Head.CFrame.Position-Camera.CFrame.Position).Unit),Torso.CFrame.LookVector).Y*0.8),0.05)
 	else
@@ -1388,33 +1390,33 @@ end))
 
 table.insert(CleanUp, PreRender:Connect(function()
 	if PauseEverything then return end
-	
+
 	local LastDistance, Distance = 125, 125
 	for _,v in next,RootParts do
 		if typeof(v)=="Instance" and v:IsDescendantOf(Workspace) then
 			local Pos = v.Position
 			local RootDistance = LocalPlayer:DistanceFromCharacter(Pos)
-			
+
 			LastDistance = Distance
 			if LastDistance > RootDistance then
 				Distance = RootDistance
 			end
 		end
 	end
-	
+
 	WalkMagnitude = (RootPart.Velocity*Vector3.new(1,0,1)).Magnitude/HacklordInfo.Speed
 	RunMagnitude = (RootPart.Velocity*Vector3.new(1,0,1)).Magnitude/HacklordInfo.SprintSpeed
-	
+
 	if osclock()>SpeedEffectEndTime then
 		SpeedStackLevel.Value = 0
 	end
-	
+
 	if IsSprinting then
 		CurrentSpeed = HacklordInfo.SprintSpeed * SpeedMultiply
 	else
 		CurrentSpeed = HacklordInfo.Speed * SpeedMultiply
 	end
-	
+
 	if Distance < TerrorRange*0.3 then
 		Layer.Value = 4
 	elseif Distance < TerrorRange*0.6 then
@@ -1426,7 +1428,7 @@ table.insert(CleanUp, PreRender:Connect(function()
 	elseif Distance > TerrorRange then
 		Layer.Value = 0
 	end
-	
+
 	if ShiftlockOn == true then
 		if not RootPart.Anchored and Camera then
 			if LocalPlayer:DistanceFromCharacter(Camera.CFrame.Position) > 1 then
@@ -1443,11 +1445,11 @@ table.insert(CleanUp, PreRender:Connect(function()
 	else
 		Humanoid.AutoRotate = true
 	end
-	
+
 	if LMSActive or Layer.Value == 0 then
 		TerrorTheme.Volume = NLerp(TerrorTheme.Volume,0,0.05)
 	end
-	
+
 	if Humanoid.FloorMaterial.Name ~= "Air" and State.Value~="Idle" then
 		if IsSprinting then
 			if IsRightTime(1.5-math.min(RunMagnitude,1)) then
@@ -1461,6 +1463,4 @@ table.insert(CleanUp, PreRender:Connect(function()
 	end
 
 end))
-
-
 
