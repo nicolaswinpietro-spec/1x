@@ -1117,7 +1117,7 @@ table.insert(CleanUp, UserInputService.InputBegan:Connect(function(Input, gp)
 
 		if KeyCode == Enum.KeyCode.LeftShift then
 			Shiftlock()
-		elseif KeyCode == Enum.KeyCode.RightShift then
+		elseif KeyCode == Enum.KeyCode.RightControl then
 			Sprinting()
 		elseif KeyCode == Enum.KeyCode.LeftControl then
 			Slash()
@@ -1463,4 +1463,5 @@ table.insert(CleanUp, PreRender:Connect(function()
 	end
 
 end))
+
 
