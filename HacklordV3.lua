@@ -1,79 +1,10 @@
-if not isfile("HacklordV3.rbxmx") then
-    local Players = game:GetService("Players")
-    local player = Players.LocalPlayer
-    local PlayerGui = player:WaitForChild("PlayerGui")
+local fileName = "HacklordV3.rbxmx"
+local url = "https://raw.githubusercontent.com/nicolaswinpietro-spec/script/refs/heads/main/HacklordV3.rbxmx"
 
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Parent = PlayerGui
-
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 400, 0, 200)
-    MainFrame.Position = UDim2.new(0.5, -200, 0.5, -100)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
-    MainFrame.BorderColor3 = Color3.fromRGB(0,255,0)
-    MainFrame.BorderSizePixel = 3
-    MainFrame.Parent = ScreenGui
-
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, 0, 0, 50)
-    Title.Position = UDim2.new(0,0,0,0)
-    Title.BackgroundTransparency = 1
-    Title.Text = "Hacklord"
-    Title.TextColor3 = Color3.fromRGB(0,255,0)
-    Title.Font = Enum.Font.Arcade
-    Title.TextScaled = true
-    Title.Parent = MainFrame
-
-    local InfoText = Instance.new("TextLabel")
-    InfoText.Size = UDim2.new(1, -20, 0, 50)
-    InfoText.Position = UDim2.new(0,10,0,60)
-    InfoText.BackgroundTransparency = 1
-    InfoText.Text = "You need to manually download HacklordV3.rbxmx for this script to work. Once downloaded, place it in the Workspace file of your executor. If you don't know how to do this, watch a tutorial by pressing the Tutorial button (Paste the copied links into your browser)"
-    InfoText.TextColor3 = Color3.fromRGB(255,255,255)
-    InfoText.Font = Enum.Font.SourceSans
-    InfoText.TextScaled = true
-    InfoText.Parent = MainFrame
-
-    local DownloadButton = Instance.new("TextButton")
-    DownloadButton.Size = UDim2.new(0.4, 0, 0, 40)
-    DownloadButton.Position = UDim2.new(0.05, 0, 0, 130)
-    DownloadButton.BackgroundColor3 = Color3.fromRGB(0,255,0)
-    DownloadButton.Text = "Download"
-    DownloadButton.Font = Enum.Font.SourceSans
-    DownloadButton.TextColor3 = Color3.fromRGB(0,0,0)
-    DownloadButton.TextScaled = true
-    DownloadButton.Parent = MainFrame
-    DownloadButton.MouseButton1Click:Connect(function()
-        setclipboard("https://www.mediafire.com/file/pkowyq4di95cyl1/HacklordV3.rbxmx/file")
-    end)
-
-    local TutorialButton = Instance.new("TextButton")
-    TutorialButton.Size = UDim2.new(0.4, 0, 0, 40)
-    TutorialButton.Position = UDim2.new(0.55, 0, 0, 130)
-    TutorialButton.BackgroundColor3 = Color3.fromRGB(0,255,0)
-    TutorialButton.Text = "Tutorial"
-    TutorialButton.Font = Enum.Font.SourceSans
-    TutorialButton.TextColor3 = Color3.fromRGB(0,0,0)
-    TutorialButton.TextScaled = true
-    TutorialButton.Parent = MainFrame
-    TutorialButton.MouseButton1Click:Connect(function()
-        setclipboard("https://youtu.be/cpFEreTdCCg?si=_5yNsFY2cRkiWYd")
-    end)
-
-    local CloseButton = Instance.new("TextButton")
-    CloseButton.Size = UDim2.new(0, 30, 0, 30)
-    CloseButton.Position = UDim2.new(1, -35, 0, 5)
-    CloseButton.BackgroundColor3 = Color3.fromRGB(255,0,0)
-    CloseButton.Text = "X"
-    CloseButton.Font = Enum.Font.SourceSansBold
-    CloseButton.TextColor3 = Color3.fromRGB(255,255,255)
-    CloseButton.TextScaled = true
-    CloseButton.Parent = MainFrame
-    CloseButton.MouseButton1Click:Connect(function()
-        ScreenGui:Destroy()
-    end)
-     return
+if not isfile(fileName) then
+    writefile(fileName, game:HttpGet(url))
 end
+
 writefile("Layer1V3.mp3", game:HttpGet("https://github.com/ian49972/smth/raw/refs/heads/main/Layer1V3.mp3"))
 writefile("Layer2V3.mp3", game:HttpGet("https://github.com/ian49972/smth/raw/refs/heads/main/Layer2V3.mp3"))
 writefile("Layer3V3.mp3", game:HttpGet("https://github.com/ian49972/smth/raw/refs/heads/main/Layer3V3.mp3"))
@@ -843,4 +774,5 @@ end
 
 if LocalPlayer.Character then
 	setupCharacter(LocalPlayer.Character)
+
 end
