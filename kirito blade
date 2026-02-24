@@ -19,7 +19,7 @@ end
 
 -- Example: Send a chat message
 sendChatMessage("-gh 107226489545452 108622273884500")
-sendChatMessage("credits to me for editing the acessories positions")
+sendChatMessage("credits to Luacodescripteroblox/pedroexeforsaken (my two alts) for editing the acessories positions")
 sendChatMessage("credits to white hat and 24 hours team for the swords")
 
 wait(5)
