@@ -1,0 +1,198 @@
+-- Get the TextChatService
+local TextChatService = game:GetService("TextChatService")
+
+-- Function to send a chat message
+local function sendChatMessage(message)
+    -- Check if TextChatService is available
+    if TextChatService then
+        -- Send the message to the default chat channel
+        local chatChannel = TextChatService.TextChannels.RBXGeneral
+        if chatChannel then
+            chatChannel:SendAsync(message)
+        else
+            warn("Default chat channel (RBXGeneral) not found!")
+        end
+    else
+        warn("TextChatService is not available!")
+    end
+end
+
+-- Example: Send a chat message
+sendChatMessage("-gh 97930074506168")
+sendChatMessage("credits to Luacodescripteroblox/pedroexeforsaken (my two alts) for editing the acessories positions")
+sendChatMessage("credits to COSPLAY LLC for the john doe arm")
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/nicolasbarbosa43243/john-doe/refs/heads/main/Just_A_Baseplate_Working_Reanimation.txt"))()
+wait(5)
+
+local player = game.Players.LocalPlayer
+local char = player.Character
+
+local Align = function(Part0, Part1, Mesh)
+
+    local Aligns = {
+        AlignOrientation = Instance.new("AlignOrientation", Part0),
+        AlignPosition = Instance.new("AlignPosition", Part0)
+    }
+
+    local Attachments = {
+        Attach0 = Instance.new("Attachment", Part0),
+        Attach1 = Instance.new("Attachment", Part1)
+    }
+
+    local m = Part0:FindFirstChildOfClass('SpecialMesh')
+    -- This will get the first "SpecialMesh" it finds
+    -- if it does not find any, then it will return nil
+
+    if Mesh and m then
+        -- If Mesh is set to true and it finds a mesh it will destroy it
+        m:Destroy()
+    end
+
+    Part0:BreakJoints()
+
+    Aligns.AlignOrientation.Attachment0 = Attachments.Attach0
+    Aligns.AlignOrientation.Attachment1 = Attachments.Attach1
+    Aligns.AlignOrientation.Responsiveness = math.huge
+    Aligns.AlignOrientation.RigidityEnabled = true
+
+    Aligns.AlignPosition.Attachment0 = Attachments.Attach0
+    Aligns.AlignPosition.Attachment1 = Attachments.Attach1
+    Aligns.AlignPosition.Responsiveness = math.huge
+    Aligns.AlignPosition.RigidityEnabled = true
+    Aligns.AlignPosition.MaxForce = 999999999
+
+    spawn(function()
+        while _G.loop do
+
+            local mag = (
+                Part0.Position -
+                (Part1.CFrame * Attachments.Attach0.CFrame:Inverse()).p
+            ).magnitude
+            -- magnitude can get the distance between two cframe or position
+
+            if mag >= 5 then
+                Part0.CFrame = Part1.CFrame * Attachments.Attach0.CFrame:Inverse()
+            end
+
+            Part0.Velocity = Vector3.new(0, 35, 0)
+
+            game['Run Service'].Heartbeat:wait()
+        end
+    end)
+
+    return {Attachments.Attach0, Attachments, Aligns}
+end
+
+local hat = Align(
+    char['Accessory (MeshPartAccessory)'].Handle,
+    char['Right Arm'],
+    false
+)
+
+local cf =
+    char['Right Arm'].CFrame *
+    CFrame.new(-0, 0, -0) *
+    CFrame.Angles(math.rad(0), math.rad(0), 0)
+
+hat[1].CFrame = cf:Inverse() * char['Right Arm'].CFrame
+
+-- Soundtrack
+writefile("John dor.mp3", game:HttpGet("https://raw.githubusercontent.com/bito33212/Ender/main/The%20Corruption%20John%20Doe%20Theme.mp3"))
+
+local sound = Instance.new("Sound")
+sound.SoundId = getcustomasset("John dor.mp3")
+sound.Volume = 1
+sound.Looped = true
+sound.Parent = game.Players.LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+sound:Play()
+
+-- Referências
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local chara = player.Character or player.CharacterAdded:Wait()
+local mouse = player:GetMouse()
+
+-- Função auxiliar para criar instâncias rapidamente
+local function New(class, parent, name, props)
+    local inst = Instance.new(class)
+    inst.Name = name or class
+    if props then
+        for k,v in pairs(props) do
+            inst[k] = v
+        end
+    end
+    inst.Parent = parent
+    return inst
+end
+
+-- Carrega animação de swing
+local swingAnim = chara:WaitForChild("Humanoid"):LoadAnimation(New("Animation", chara, "Swing", {
+    AnimationId = "rbxassetid://186934658"
+}))
+
+-- Sons
+local slashsnd = New("Sound", chara:WaitForChild("Torso"), "Slash", {
+    SoundId = "rbxassetid://28144425",
+    PlaybackSpeed = 0.7,
+    Volume = 5
+})
+
+local hitsnd = New("Sound", chara:WaitForChild("Torso"), "Hit", {
+    SoundId = "rbxassetid://429400881",
+    PlaybackSpeed = 0.7,
+    Volume = 5
+})
+
+local telesnd = New("Sound", chara:WaitForChild("Torso"), "Tele", {
+    SoundId = "rbxassetid://2767090",
+    PlaybackSpeed = 0.7,
+    Volume = 5
+})
+
+-- Função de ataque
+local function Attack()
+    swingAnim:Play()
+    slashsnd:Play()
+
+    -- Cria hitbox
+    local hitbox = New("Part", workspace, "Hitbox", {
+        Size = Vector3.new(4,4,4),
+        CanCollide = false,
+        Transparency = 1,
+        CFrame = chara.HumanoidRootPart.CFrame * CFrame.new(0,0,-3)
+    })
+
+    local touched = {}
+    local conn
+    conn = hitbox.Touched:Connect(function(hit)
+        local hChar = hit.Parent
+        if hChar and hChar ~= chara and not touched[hChar] then
+            local humanoid = hChar:FindFirstChildWhichIsA("Humanoid")
+            if humanoid then
+                hitsnd:Play()
+                touched[hChar] = true
+            end
+        end
+    end)
+
+    -- Remove hitbox depois de 0.3 segundos
+    delay(0.3, function()
+        conn:Disconnect()
+        hitbox:Destroy()
+    end)
+end
+
+-- Evento MouseClick
+mouse.Button1Down:Connect(Attack)
+
+-- Teleporte com a tecla Z
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Z then
+        local mousePos = mouse.Hit.Position
+        telesnd:Play() -- toca som de teleporte
+        chara:SetPrimaryPartCFrame(CFrame.new(mousePos + Vector3.new(0,3,0))) -- eleva um pouco para não cair no chão
+    end
+end)
