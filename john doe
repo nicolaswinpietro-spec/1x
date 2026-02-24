@@ -97,7 +97,7 @@ local cf =
 
 hat[1].CFrame = cf:Inverse() * char['Right Arm'].CFrame
 
-- Get the required services
+-- Get the required services
 local TweenService = game:GetService("TweenService")
 
 -- Create a new ScreenGui
